@@ -2,36 +2,58 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { CUISINES, type Cuisine } from "@/lib/cuisine";
+import { recentDishes } from "@/lib/history";
 import type { NearbyPick } from "@/lib/schema";
-import type { Remaining } from "@/lib/storage";
+import type { AppState, Remaining } from "@/lib/storage";
 import { Badge, Button, Card, ErrorBox, Spinner } from "./ui";
 
 type Picks = NearbyPick[];
+/** 갈래를 바꿨을 때 같은 자리에서 다시 찾으려고 마지막 검색 조건을 들고 있는다 */
+type Where = { lat: number; lng: number } | { keyword: string };
 
-export default function NearbyTab({ remaining }: { remaining: Remaining | null }) {
+export default function NearbyTab({
+  state,
+  remaining,
+}: {
+  state: AppState;
+  remaining: Remaining | null;
+}) {
   const [picks, setPicks] = useState<Picks | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [note, setNote] = useState("");
   const [keyword, setKeyword] = useState("");
   const [needKeyword, setNeedKeyword] = useState(false);
-  // 사진 주소가 죽어 있으면 자리만 비게 둔다
+  const [cuisine, setCuisine] = useState<Cuisine>("전체");
+  const [where, setWhere] = useState<Where | null>(null);
+  // 사진 주소가 죽어 있으면 그 자리만 비운다
   const [brokenPhoto, setBrokenPhoto] = useState<Record<number, boolean>>({});
 
-  async function search(body: Record<string, unknown>) {
+  async function search(place: Where, pickedCuisine: Cuisine) {
     setError("");
+    setNote("");
     setBusy(true);
     setPicks(null);
     setBrokenPhoto({});
+    setWhere(place);
     try {
       const res = await fetch("/api/nearby", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...body, remaining }),
+        body: JSON.stringify({
+          ...place,
+          cuisine: pickedCuisine,
+          remaining,
+          // 사흘 안에 먹은 것을 또 권하지 않게 한다
+          recentDishes: recentDishes(state),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "식당을 찾지 못했습니다.");
       const list = (json.picks ?? []) as Picks;
       setPicks([...list].sort((a, b) => b.fitScore - a.fitScore));
+      setNote(json.note ?? "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "식당을 찾지 못했습니다.");
     } finally {
@@ -48,7 +70,7 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
     }
     setBusy(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => search({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => search({ lat: pos.coords.latitude, lng: pos.coords.longitude }, cuisine),
       () => {
         setBusy(false);
         setNeedKeyword(true);
@@ -56,6 +78,12 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
     );
+  }
+
+  function pickCuisine(next: Cuisine) {
+    setCuisine(next);
+    // 이미 한 번 찾아봤다면 같은 자리에서 갈래만 바꿔 다시 찾는다
+    if (where && !busy) search(where, next);
   }
 
   return (
@@ -69,6 +97,26 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
           오늘 남은 예산에 맞는 곳부터 보여드립니다.
         </p>
+      </div>
+
+      <div>
+        <div className="mb-1.5 px-1 text-[12px] font-semibold text-muted">오늘 먹고 싶은 갈래</div>
+        <div className="flex flex-wrap gap-1.5">
+          {CUISINES.map((c) => (
+            <button
+              key={c}
+              onClick={() => pickCuisine(c)}
+              disabled={busy}
+              className={`rounded-full border px-3.5 py-2 text-[13px] font-semibold transition disabled:opacity-50 ${
+                cuisine === c
+                  ? "border-brand bg-brand text-white"
+                  : "border-line bg-card text-muted"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
       </div>
 
       <Button onClick={useGps} disabled={busy}>
@@ -93,7 +141,7 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
           <Button
             variant="ghost"
             disabled={busy || !keyword.trim()}
-            onClick={() => search({ keyword })}
+            onClick={() => search({ keyword }, cuisine)}
           >
             이 동네에서 찾기
           </Button>
@@ -105,12 +153,20 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
 
       {picks && picks.length === 0 && (
         <Card>
-          <p className="text-[14px] text-muted">근처에서 식당을 찾지 못했습니다.</p>
+          <p className="text-[14px] text-muted">
+            {note || "근처에서 식당을 찾지 못했습니다."}
+          </p>
         </Card>
       )}
 
       {picks && picks.length > 0 && (
         <div className="space-y-3">
+          {note && (
+            <div className="rounded-xl bg-line/40 px-3.5 py-2.5 text-[12.5px] leading-relaxed text-muted">
+              {note}
+            </div>
+          )}
+
           <div className="rounded-xl bg-warn-soft px-3.5 py-3 text-[12.5px] leading-relaxed text-warn">
             식당 이름과 거리는 실제 정보입니다. 메뉴는 상호와 업종으로 미루어 짐작한
             <b> 예상 메뉴</b>이며 실제 메뉴판과 다를 수 있습니다. 사진도 메뉴 이름으로 검색한

@@ -13,7 +13,14 @@ export interface MealLog {
   dishName: string;
   kcal: number;
   protein: number;
+  /** 아침·점심·저녁·간식. 예전에 저장된 기록에는 없다 */
+  slot?: Slot;
+  /** 사진으로 분석한 것인지, 손으로 적은 것인지 */
+  source?: "photo" | "manual";
 }
+
+export const SLOTS = ["아침", "점심", "저녁", "간식", "야식"] as const;
+export type Slot = (typeof SLOTS)[number];
 
 /** 오늘 뜬 응원 문구. 하루에 한 번만 새로 받아온다 */
 export interface SavedQuote {
@@ -183,13 +190,92 @@ export function streakDays(s: AppState, d = new Date()): number {
   return count;
 }
 
+/** 손으로 적은 끼니. 열량을 모르면 0으로 두고 예산에는 넣지 않는다 */
+export function addManualLog(
+  s: AppState,
+  entry: {
+    dishName: string;
+    slot: Slot;
+    kcal?: number;
+    protein?: number;
+    source?: "photo" | "manual";
+  },
+  d = new Date(),
+): AppState {
+  const at = new Date(d);
+  // 날짜만 맞으면 되므로 시간은 끼니 순서대로 적어 정렬이 자연스럽게 되게 한다
+  const hour = { 아침: 8, 점심: 12, 저녁: 19, 간식: 15, 야식: 22 }[entry.slot];
+  at.setHours(hour, 0, 0, 0);
+
+  const log: MealLog = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    at: at.toISOString(),
+    dishName: entry.dishName.trim(),
+    kcal: Math.max(0, Math.round(entry.kcal ?? 0)),
+    protein: Math.max(0, Math.round(entry.protein ?? 0)),
+    slot: entry.slot,
+    source: entry.source ?? "manual",
+  };
+  return { ...s, logs: [...s.logs, log] };
+}
+
+export function removeLog(s: AppState, id: string): AppState {
+  return { ...s, logs: s.logs.filter((l) => l.id !== id) };
+}
+
+export interface DayRecord {
+  key: string;
+  /** 오늘 · 어제 · 9월 3일 */
+  label: string;
+  date: Date;
+  logs: MealLog[];
+  activity: DayActivity;
+}
+
+/** 오늘부터 거슬러 n일치. 지난 며칠을 한눈에 놓고 채워 넣을 때 쓴다 */
+export function recentDays(s: AppState, n = 3, from = new Date()): DayRecord[] {
+  const out: DayRecord[] = [];
+
+  for (let i = 0; i < n; i++) {
+    const date = new Date(from);
+    date.setDate(date.getDate() - i);
+    const key = dateKey(date);
+    const label =
+      i === 0 ? "오늘" : i === 1 ? "어제" : `${date.getMonth() + 1}월 ${date.getDate()}일`;
+
+    out.push({
+      key,
+      label,
+      date,
+      logs: s.logs
+        .filter((l) => dateKey(new Date(l.at)) === key)
+        .sort((a, b) => a.at.localeCompare(b.at)),
+      activity: s.activity[key] ?? EMPTY_ACTIVITY,
+    });
+  }
+
+  return out;
+}
+
+/** 시각으로 어느 끼니인지 짐작한다. 사진을 찍은 시간이 곧 먹은 시간이다 */
+export function slotByHour(h: number): Slot {
+  if (h < 10) return "아침";
+  if (h < 15) return "점심";
+  if (h < 18) return "간식";
+  if (h < 21) return "저녁";
+  return "야식";
+}
+
 export function addLog(s: AppState, meal: Meal): AppState {
+  const now = new Date();
   const log: MealLog = {
     id: `${Date.now()}`,
-    at: new Date().toISOString(),
+    at: now.toISOString(),
     dishName: meal.dishName,
     kcal: meal.totalKcalIfFollowed,
     protein: meal.totalProteinIfFollowed,
+    slot: slotByHour(now.getHours()),
+    source: "photo",
   };
   return { ...s, logs: [...s.logs, log] };
 }

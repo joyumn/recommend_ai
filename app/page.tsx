@@ -87,7 +87,7 @@ export default function Home() {
             onLog={(m: Meal) => commitState(addLog(state, m))}
           />
         )}
-        {tab === "nearby" && <NearbyTab remaining={remaining} />}
+        {tab === "nearby" && <NearbyTab state={state} remaining={remaining} />}
       </main>
 
       <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-[480px] -translate-x-1/2 border-t border-line bg-card/95 backdrop-blur">

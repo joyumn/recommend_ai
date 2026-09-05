@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import type { Part } from "@google/genai";
-import { generateJson, assertApiKey } from "@/lib/gemini";
+import { generateJson, assertApiKey, friendlyError, type ImagePart } from "@/lib/claude";
 import { MealSchema } from "@/lib/schema";
 
 export const maxDuration = 60;
@@ -27,6 +26,10 @@ const SYSTEM = `당신은 한국 음식에 밝은 영양 코치입니다. 사진
 
 그 밖의 규칙:
 - 사용자의 오늘 남은 예산 안에 들어오도록 분량을 정하세요.
+- 최근 며칠 기록이 함께 주어지면 그 흐름 위에서 판단하세요. 국물·튀김·면이 반복됐다면 오늘은 덜어내고,
+  단백질이 계속 모자랐다면 단백질부터 채우게 하세요. 며칠째 잘 지켰다면 그 점을 짚어주세요.
+- 최근 기록을 근거로 삼았다면 advice에 "어제 국물이 두 끼였으니"처럼 이유를 밝히세요.
+- 최근 기록에 없는 내용을 지어내지 마세요. 주어진 것만 근거로 쓰세요.
 - 단백질이 부족하면 단백질 음식은 다 먹게 하고 탄수·지방을 줄이세요.
 - kcal과 protein은 "권장한 부위를 권장한 양만큼" 먹었을 때의 값입니다.
 - savedKcal은 남기는 부위와 양 덕분에 아낀 칼로리입니다.
@@ -34,6 +37,16 @@ const SYSTEM = `당신은 한국 음식에 밝은 영양 코치입니다. 사진
 - 모든 수치는 눈대중 추정치입니다. 확신이 없으면 confidence를 낮추세요.
 - 음식이 아니거나 알아볼 수 없으면 items를 빈 배열로 두고 confidence를 "low"로 하세요.
 - 한국어 존댓말로 답하세요.`;
+
+/** 화면이 간추려 보내는 최근 며칠. lib/history.ts가 만든다 */
+interface DayHistory {
+  label: string;
+  meals: string[];
+  steps: number;
+  exerciseMin: number;
+  activeKcal: number;
+  kcal: number;
+}
 
 interface Body {
   imageBase64: string;
@@ -45,12 +58,30 @@ interface Body {
     proteinTarget: number;
   } | null;
   note?: string;
+  history?: DayHistory[];
+}
+
+function historyLines(history: DayHistory[]): string {
+  const lines = ["", "최근 기록입니다. 오늘 조언은 이 흐름 위에서 해주세요."];
+
+  for (const d of history) {
+    const moved = [
+      d.steps > 0 ? `${d.steps.toLocaleString()}걸음` : null,
+      d.exerciseMin > 0 ? `운동 ${d.exerciseMin}분` : null,
+      d.activeKcal > 0 ? `${d.activeKcal}kcal 소모` : null,
+    ].filter(Boolean);
+
+    const meals = d.meals.length > 0 ? d.meals.join(", ") : "식사 기록 없음";
+    lines.push(`- ${d.label}: ${meals}${moved.length > 0 ? ` / ${moved.join(" · ")}` : ""}`);
+  }
+
+  return lines.join("\n");
 }
 
 export async function POST(req: Request) {
   try {
     assertApiKey();
-    const { imageBase64, mediaType, remaining, note } = (await req.json()) as Body;
+    const { imageBase64, mediaType, remaining, note, history } = (await req.json()) as Body;
     if (!imageBase64) {
       return NextResponse.json({ error: "사진이 없습니다." }, { status: 400 });
     }
@@ -60,23 +91,29 @@ export async function POST(req: Request) {
 (하루 목표는 ${remaining.kcalTarget}kcal, 단백질 ${remaining.proteinTarget}g입니다)`
       : "아직 목표가 설정되지 않았습니다. 일반적인 건강 식사 기준으로 조언해주세요.";
 
-    const parts: Part[] = [
-      { inlineData: { mimeType: mediaType || "image/jpeg", data: imageBase64 } },
-      {
-        text: `이 사진의 음식을 분석해주세요.
+    const historyText = history && history.length > 0 ? historyLines(history) : "";
+
+    const image: ImagePart = {
+      base64: imageBase64,
+      mediaType: (mediaType as ImagePart["mediaType"]) || "image/jpeg",
+    };
+
+    const meal = await generateJson({
+      system: SYSTEM,
+      schema: MealSchema,
+      image,
+      prompt: `이 사진의 음식을 분석해주세요.
 
 ${budgetText}
+${historyText}
 ${note ? `\n사용자 메모: ${note}` : ""}
 
 각 음식마다 어떤 부분을 먹고 어떤 부분을 남길지 반드시 짚어주세요.`,
-      },
-    ];
+    });
 
-    const meal = await generateJson({ system: SYSTEM, schema: MealSchema, parts, temperature: 0.3 });
     return NextResponse.json(meal);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "알 수 없는 오류";
     console.error("[/api/meal]", e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: friendlyError(e) }, { status: 500 });
   }
 }

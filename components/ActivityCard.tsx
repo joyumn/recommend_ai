@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { activityProgress, activitySentence, type ActivityGoal } from "@/lib/activity";
-import { parseHealthCsv } from "@/lib/healthImport";
+import { parseHealthCsvDays } from "@/lib/healthImport";
 import { commitState, dateKey, todayActivity, withActivity, type AppState } from "@/lib/storage";
 import { Badge, Button, Card } from "./ui";
 
@@ -125,25 +125,55 @@ export default function ActivityCard({
     commitState(withActivity(state, { ...patch, source }));
   }
 
+  /**
+   * 파일 하나에 보통 여러 날이 들어 있다. 오늘 한 줄만 쓰지 않고 들어 있는 날을 모두 채운다.
+   * 이렇게 해야 지난 3일 기록도 파일 한 번으로 자동으로 메워진다.
+   */
   async function handleFile(file: File) {
     setNote("");
     try {
-      const parsed = parseHealthCsv(await file.text(), dateKey());
-      if (!parsed) {
+      const days = parseHealthCsvDays(await file.text());
+      if (days.length === 0) {
         setNote(
           "이 파일에서는 걸음이나 칼로리를 찾지 못했습니다. 삼성헬스나 Google Fit에서 내려받은 csv 파일인지 확인해주세요.",
         );
         return;
       }
-      const readDate = parsed.dateKey;
-      save(
-        { steps: parsed.steps, activeKcal: parsed.activeKcal, exerciseMin: parsed.exerciseMin },
-        "file",
-      );
+
+      // 한 달이 넘은 기록까지 브라우저에 쌓을 필요는 없다
+      const oldest = new Date();
+      oldest.setDate(oldest.getDate() - 30);
+      const oldestKey = dateKey(oldest);
+
+      let next = state;
+      const filled: string[] = [];
+
+      for (const day of days) {
+        if (day.dateKey && day.dateKey < oldestKey) continue;
+        const when = day.dateKey ? new Date(`${day.dateKey}T12:00:00`) : new Date();
+        next = withActivity(
+          next,
+          {
+            steps: day.steps,
+            activeKcal: day.activeKcal,
+            exerciseMin: day.exerciseMin,
+            source: "file",
+          },
+          when,
+        );
+        filled.push(day.dateKey ?? dateKey());
+      }
+
+      if (filled.length === 0) {
+        setNote("최근 한 달 안의 기록이 파일에 없습니다.");
+        return;
+      }
+
+      commitState(next);
       setNote(
-        readDate && readDate !== dateKey()
-          ? `${readDate} 기록을 읽었습니다. 오늘 자료가 파일에 아직 없어 가장 최근 날짜를 가져왔습니다.`
-          : "오늘 기록을 읽었습니다.",
+        filled.length === 1
+          ? `${filled[0]} 기록을 채웠습니다.`
+          : `${filled[0]}부터 ${filled[filled.length - 1]}까지 ${filled.length}일치를 채웠습니다.`,
       );
     } catch {
       setNote("파일을 읽지 못했습니다.");
@@ -243,7 +273,8 @@ export default function ActivityCard({
             <p className="text-[12.5px] leading-relaxed text-muted">
               삼성헬스는 <b>설정 → 개인 데이터 다운로드</b>, Google Fit은
               <b> Google 계정 → 데이터 내보내기</b>에서 받은 압축을 풀면 csv 파일이 나옵니다.
-              걸음·칼로리가 담긴 파일을 고르면 오늘 줄을 찾아 채웁니다.
+              걸음·칼로리가 담긴 파일을 고르면 그 안에 있는 날짜를 모두 찾아 하루씩 채웁니다
+              (최근 한 달까지).
             </p>
             <input
               ref={fileRef}
@@ -281,8 +312,9 @@ export default function ActivityCard({
               /?steps=걸음&amp;kcal=활동에너지&amp;min=운동시간
             </code>
             <p className="text-[12.5px] leading-relaxed text-muted">
-              단축어 앱의 <b>자동화</b>에서 매일 아침 시간으로 걸어두면 손댈 일이 없습니다. 주소로 받은
-              값은 저장한 즉시 주소창에서 지웁니다.
+              단축어 앱의 <b>자동화</b>에서 매일 아침 시간으로 걸어두면 손댈 일이 없습니다.
+              전날 값을 보내려면 <code>&amp;date=2026-09-04</code>처럼 날짜를 붙이면 그날 칸에 들어갑니다.
+              주소로 받은 값은 저장한 즉시 주소창에서 지웁니다.
             </p>
           </div>
 

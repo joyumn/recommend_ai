@@ -17,13 +17,20 @@ export function useHealthLink(state: AppState | null) {
     const parsed = activityFromSearch(window.location.search);
     if (!parsed) return;
 
+    // date=2026-09-04 처럼 날짜를 함께 보내면 그날 칸에 넣는다. 없으면 오늘
+    const when = parsed.dateKey ? new Date(`${parsed.dateKey}T12:00:00`) : new Date();
+
     commitState(
-      withActivity(state, {
-        steps: parsed.steps,
-        activeKcal: parsed.activeKcal,
-        exerciseMin: parsed.exerciseMin,
-        source: "shortcut",
-      }),
+      withActivity(
+        state,
+        {
+          steps: parsed.steps,
+          activeKcal: parsed.activeKcal,
+          exerciseMin: parsed.exerciseMin,
+          source: "shortcut",
+        },
+        when,
+      ),
     );
     window.history.replaceState({}, "", window.location.pathname);
   }, [state]);

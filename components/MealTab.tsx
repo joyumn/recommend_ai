@@ -2,30 +2,13 @@
 
 import { useRef, useState } from "react";
 import type { ActivityGoal } from "@/lib/activity";
+import { recentHistory } from "@/lib/history";
+import { shrinkToBase64 } from "@/lib/image";
 import type { Meal } from "@/lib/schema";
 import type { AppState, Remaining } from "@/lib/storage";
 import ActivityCard from "./ActivityCard";
+import RecentMeals from "./RecentMeals";
 import { Badge, Button, Card, ErrorBox, Spinner } from "./ui";
-
-/** 폰 사진은 5MB가 넘는다. 긴 변 1024px로 줄여야 빠르고 저렴하다 */
-async function shrinkToBase64(file: File): Promise<{ base64: string; dataUrl: string }> {
-  const bitmap = await createImageBitmap(file);
-  const max = 1024;
-  const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
-  const w = Math.round(bitmap.width * scale);
-  const h = Math.round(bitmap.height * scale);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("이미지를 처리하지 못했습니다.");
-  ctx.drawImage(bitmap, 0, 0, w, h);
-  bitmap.close();
-
-  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-  return { base64: dataUrl.split(",")[1], dataUrl };
-}
 
 const CONFIDENCE_LABEL = {
   high: "판독 양호",
@@ -62,7 +45,13 @@ export default function MealTab({
       const res = await fetch("/api/meal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mediaType: "image/jpeg", remaining }),
+        body: JSON.stringify({
+          imageBase64: base64,
+          mediaType: "image/jpeg",
+          remaining,
+          // 오늘 사진 한 장이 아니라 사흘 흐름 위에서 판단하게 한다
+          history: recentHistory(state),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "분석에 실패했습니다.");
@@ -78,6 +67,8 @@ export default function MealTab({
     <div className="space-y-4">
       {/* 무엇을 먹을지 고르기 전에, 오늘 얼마나 움직였는지부터 */}
       <ActivityCard state={state} goal={goal} variant="compact" />
+
+      <RecentMeals state={state} />
 
       <div className="px-1">
         <h1 className="text-[22px] font-bold leading-snug">

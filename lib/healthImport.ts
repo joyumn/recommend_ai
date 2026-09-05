@@ -17,7 +17,7 @@ export interface ParsedActivity {
 
 /* ---------- 1. 아이폰 단축어: 주소 파라미터 ---------- */
 
-const URL_KEYS: Record<keyof Omit<ParsedActivity, "dateKey">, string[]> = {
+const URL_KEYS: Record<Exclude<keyof ParsedActivity, "dateKey">, string[]> = {
   steps: ["steps", "step", "걸음"],
   activeKcal: ["kcal", "activekcal", "calories", "cal", "energy"],
   exerciseMin: ["min", "minutes", "exercise", "workout", "duration"],
@@ -41,6 +41,13 @@ export function activityFromSearch(search: string): ParsedActivity | null {
         break;
       }
     }
+  }
+
+  // 단축어가 어제치를 늦게 보낼 수도 있어 날짜를 함께 받는다
+  const date = q.get("date") ?? q.get("day");
+  if (date) {
+    const key = toDateKey(date);
+    if (key) out.dateKey = key;
   }
 
   return Object.keys(out).length > 0 ? out : null;
@@ -131,14 +138,18 @@ function toMinutes(n: number): number {
 }
 
 /**
- * 삼성헬스·Google Fit이 내려주는 CSV에서 오늘 줄을 찾는다.
+ * 삼성헬스·Google Fit이 내려주는 CSV를 날짜별로 읽는다.
+ *
  * 컬럼 이름이 버전마다 달라서, 고정된 위치 대신 이름으로 짚는다.
- * 오늘 줄이 없으면 가장 마지막(최근) 줄을 쓰고, 어느 날짜인지 함께 돌려준다.
+ * 파일에는 보통 여러 날이 들어 있다. 한 줄만 쓰지 않고 들어 있는 날을 전부 돌려줘야
+ * 며칠치 운동량이 한 번에 채워진다.
+ *
+ * 날짜 칸이 아예 없는 파일은 마지막 줄 하나만 dateKey 없이 돌려준다(부르는 쪽에서 오늘로 본다).
  */
-export function parseHealthCsv(text: string, todayKey: string): ParsedActivity | null {
+export function parseHealthCsvDays(text: string): ParsedActivity[] {
   const rows = splitCsv(text);
   const headerIdx = findHeader(rows);
-  if (headerIdx < 0) return null;
+  if (headerIdx < 0) return [];
 
   const header = rows[headerIdx];
   const dateCol = pickColumn(header, /date|day|일자|날짜|시간|time/);
@@ -146,12 +157,12 @@ export function parseHealthCsv(text: string, todayKey: string): ParsedActivity |
   const kcalCol = pickColumn(header, /cal|칼로리|energy/, /goal|목표|target|bmr|기초/);
   const minCol = pickColumn(header, /minute|duration|active_time|운동|분/, /goal|목표/);
 
-  if (stepCol < 0 && kcalCol < 0 && minCol < 0) return null;
+  if (stepCol < 0 && kcalCol < 0 && minCol < 0) return [];
 
   // 줄 끝이 잘려 들어오는 파일이 있어, 필요한 칸만 있으면 받아들인다
   const needed = Math.max(dateCol, stepCol, kcalCol, minCol) + 1;
   const body = rows.slice(headerIdx + 1).filter((r) => r.length >= needed);
-  if (body.length === 0) return null;
+  if (body.length === 0) return [];
 
   const num = (row: string[], col: number): number | undefined => {
     if (col < 0) return undefined;
@@ -159,25 +170,34 @@ export function parseHealthCsv(text: string, todayKey: string): ParsedActivity |
     return Number.isFinite(n) ? n : undefined;
   };
 
-  const withDate = body
+  const rowsWithDate = body
     .map((row) => ({ row, key: dateCol >= 0 ? toDateKey(row[dateCol] ?? "") : null }))
     .filter((x) => x.key !== null);
 
-  const target =
-    withDate.find((x) => x.key === todayKey) ??
-    withDate[withDate.length - 1] ??
-    { row: body[body.length - 1], key: null };
+  // 날짜 칸이 없으면 마지막 줄 하나만
+  const targets =
+    rowsWithDate.length > 0 ? rowsWithDate : [{ row: body[body.length - 1], key: null }];
 
-  const steps = num(target.row, stepCol);
-  const activeKcal = num(target.row, kcalCol);
-  const rawMin = num(target.row, minCol);
+  const out: ParsedActivity[] = [];
 
-  const out: ParsedActivity = { dateKey: target.key ?? undefined };
-  if (steps !== undefined) out.steps = Math.round(steps);
-  if (activeKcal !== undefined) out.activeKcal = Math.round(activeKcal);
-  if (rawMin !== undefined) out.exerciseMin = toMinutes(rawMin);
+  for (const target of targets) {
+    const steps = num(target.row, stepCol);
+    const activeKcal = num(target.row, kcalCol);
+    const rawMin = num(target.row, minCol);
 
-  const hasValue =
-    out.steps !== undefined || out.activeKcal !== undefined || out.exerciseMin !== undefined;
-  return hasValue ? out : null;
+    const day: ParsedActivity = { dateKey: target.key ?? undefined };
+    if (steps !== undefined) day.steps = Math.round(steps);
+    if (activeKcal !== undefined) day.activeKcal = Math.round(activeKcal);
+    if (rawMin !== undefined) day.exerciseMin = toMinutes(rawMin);
+
+    const hasValue =
+      day.steps !== undefined || day.activeKcal !== undefined || day.exerciseMin !== undefined;
+    if (hasValue) out.push(day);
+  }
+
+  // 같은 날이 여러 줄로 들어오면 마지막 줄이 이긴다
+  const byDate = new Map<string, ParsedActivity>();
+  for (const day of out) byDate.set(day.dateKey ?? "", day);
+
+  return [...byDate.values()].sort((a, b) => (a.dateKey ?? "").localeCompare(b.dateKey ?? ""));
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateJson, assertApiKey } from "@/lib/gemini";
+import { generateJson, assertApiKey, friendlyError } from "@/lib/claude";
 import { QuoteSchema } from "@/lib/schema";
 
 export const maxDuration = 30;
@@ -50,18 +50,18 @@ export async function POST(req: Request) {
         ? ["오늘 상황입니다.", "", ...lines, "", "이 사람에게 건넬 한마디를 써주세요."].join("\n")
         : "오늘 하루를 시작하는 사람에게 건넬 한마디를 써주세요.";
 
-    // 매일 같은 말이 나오면 안 되므로 온도를 높인다
+    // 짧은 한 문장이라 깊이 생각할 일이 없다. 가장 낮은 단계로 부른다
     const result = await generateJson({
       system: SYSTEM,
       schema: QuoteSchema,
-      temperature: 1,
-      parts: [{ text: prompt }],
+      prompt,
+      effort: "low",
+      maxTokens: 2000,
     });
 
     return NextResponse.json(result);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : "알 수 없는 오류";
     console.error("[/api/quote]", e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: friendlyError(e) }, { status: 500 });
   }
 }
