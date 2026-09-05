@@ -59,3 +59,8 @@ Supabase CLI 로그인, API 키 발급.
 - 배포 주소: https://recommend-ai-six.vercel.app
 - 확인: `npx vercel ls recommend-ai` 로 Ready인지, 그다음 실제 주소를 열어본다.
 - 자동 요청을 짧은 시간에 많이 보내면 Vercel 자동 방어가 켜져 403이 난다. 확인은 몇 번만 한다.
+
+## 지난 학습
+
+- `docs/solutions/` — 전에 풀었던 문제를 갈래별로 적어둔 곳. 각 문서는 `module`·`tags`·`problem_type` 앞머리를 달고 있어 찾아보기 좋다. 이미 다뤄본 영역을 만들거나 고칠 때 참고가 된다.
+- `CONCEPTS.md` — 이 프로젝트에서 뜻이 정해진 말들(앱 기록, 오늘 남은 예산, 오늘 활동 같은 것). 코드를 처음 볼 때나 용어를 맞출 때 참고가 된다.
