@@ -8,8 +8,12 @@ import { z as zod } from "zod";
  */
 const genai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY ?? "" });
 
-/** 무료 티어에서 쓸 수 있고 이미지도 읽는 모델 */
-export const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+/**
+ * 무료 티어에서 쓸 수 있고 이미지도 읽는 모델.
+ * gemini-2.5-flash는 모델 목록에는 보이지만 신규 사용자에게는 404가 난다.
+ * 막히면 GEMINI_MODEL 환경변수로 갈아끼울 수 있게 열어뒀다.
+ */
+export const MODEL = process.env.GEMINI_MODEL ?? "gemini-3.7-flash";
 
 export function assertApiKey() {
   if (!process.env.GEMINI_API_KEY) {
