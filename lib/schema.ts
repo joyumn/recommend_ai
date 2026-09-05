@@ -42,10 +42,6 @@ export const MealItemSchema = z.object({
   protein: z.number().describe("권장대로 먹었을 때의 단백질(g)"),
   savedKcal: z.number().describe("남기는 부위와 양 덕분에 아낀 칼로리"),
   reason: z.string().describe("왜 이렇게 먹어야 하는지 한 문장"),
-  box: z
-    .array(z.number())
-    .nullable()
-    .describe("사진 속 위치 [x0,y0,x1,y1], 0~1 비율. 확실하지 않으면 null"),
 });
 
 export const MealSchema = z.object({

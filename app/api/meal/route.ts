@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import type Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { anthropic, MODEL, assertApiKey } from "@/lib/anthropic";
+import type { Part } from "@google/genai";
+import { generateJson, assertApiKey } from "@/lib/gemini";
 import { MealSchema } from "@/lib/schema";
 
 export const maxDuration = 60;
@@ -31,14 +30,20 @@ const SYSTEM = `당신은 한국 음식에 밝은 영양 코치입니다. 사진
 - 단백질이 부족하면 단백질 음식은 다 먹게 하고 탄수·지방을 줄이세요.
 - kcal과 protein은 "권장한 부위를 권장한 양만큼" 먹었을 때의 값입니다.
 - savedKcal은 남기는 부위와 양 덕분에 아낀 칼로리입니다.
+- eatRatio는 0과 1 사이의 숫자입니다.
 - 모든 수치는 눈대중 추정치입니다. 확신이 없으면 confidence를 낮추세요.
-- 음식이 아니거나 알아볼 수 없으면 items를 비우고 confidence를 "low"로 하세요.
-- 한국어로, 친근한 반말이 아닌 존댓말로 답하세요.`;
+- 음식이 아니거나 알아볼 수 없으면 items를 빈 배열로 두고 confidence를 "low"로 하세요.
+- 한국어 존댓말로 답하세요.`;
 
 interface Body {
   imageBase64: string;
-  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
-  remaining?: { kcalLeft: number; proteinLeft: number; kcalTarget: number; proteinTarget: number } | null;
+  mediaType: string;
+  remaining?: {
+    kcalLeft: number;
+    proteinLeft: number;
+    kcalTarget: number;
+    proteinTarget: number;
+  } | null;
   note?: string;
 }
 
@@ -55,10 +60,9 @@ export async function POST(req: Request) {
 (하루 목표는 ${remaining.kcalTarget}kcal, 단백질 ${remaining.proteinTarget}g입니다)`
       : "아직 목표가 설정되지 않았습니다. 일반적인 건강 식사 기준으로 조언해주세요.";
 
-    const content: Anthropic.ContentBlockParam[] = [
-      { type: "image", source: { type: "base64", media_type: mediaType, data: imageBase64 } },
+    const parts: Part[] = [
+      { inlineData: { mimeType: mediaType || "image/jpeg", data: imageBase64 } },
       {
-        type: "text",
         text: `이 사진의 음식을 분석해주세요.
 
 ${budgetText}
@@ -68,18 +72,8 @@ ${note ? `\n사용자 메모: ${note}` : ""}
       },
     ];
 
-    const res = await anthropic.messages.parse({
-      model: MODEL,
-      max_tokens: 8000,
-      system: SYSTEM,
-      output_config: { effort: "low", format: zodOutputFormat(MealSchema) },
-      messages: [{ role: "user", content }],
-    });
-
-    if (!res.parsed_output) {
-      return NextResponse.json({ error: "사진을 분석하지 못했습니다. 다시 찍어주세요." }, { status: 502 });
-    }
-    return NextResponse.json(res.parsed_output);
+    const meal = await generateJson({ system: SYSTEM, schema: MealSchema, parts, temperature: 0.3 });
+    return NextResponse.json(meal);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "알 수 없는 오류";
     console.error("[/api/meal]", e);

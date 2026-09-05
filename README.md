@@ -1,4 +1,4 @@
-# 핏플랜 — 뭘, 어떤 부분을, 얼마나 먹을지 알려주는 코치
+# 몸친 — 뭘, 어떤 부분을, 얼마나 먹을지 알려주는 코치
 
 목표 체중을 입력하면 현실적인 계획을 세우고, 식사 사진 한 장으로
 **어떤 부분을 먹고 어떤 부분을 남길지**까지 알려주는 웹앱입니다.
@@ -26,8 +26,14 @@ npm run dev                  # http://localhost:3000
 
 | 변수 | 어디서 | 비고 |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | https://console.anthropic.com → API Keys | Billing에서 크레딧 충전이 되어 있어야 동작합니다 |
-| `KAKAO_REST_KEY` | https://developers.kakao.com → 내 애플리케이션 → 앱 키 | **REST API 키**. 서버에서만 호출하므로 플랫폼 등록 불필요 |
+| `GEMINI_API_KEY` | https://aistudio.google.com/apikey | 무료 발급, 카드 등록 불필요 |
+| `KAKAO_REST_KEY` | https://developers.kakao.com → 앱 → 플랫폼 키 → **REST API 키** | 아래 함정을 먼저 보세요 |
+
+> **카카오 함정**: 키만 발급받으면 호출이 이렇게 막힙니다.
+> `{"errorType":"NotAuthorizedError","message":"App(...) disabled OPEN_MAP_AND_LOCAL service."}`
+> **제품 설정 → 카카오맵 → 사용 설정을 ON** 으로 켜야 로컬 검색이 열립니다.
+> 이때 "첫 번째로 활성화한 앱만 일간 무료 쿼터를 받고, 되돌릴 수 없다"는 안내가 뜨는데,
+> 계정당 한 번뿐인 선택이니 실제로 쓸 앱에서 켜세요.
 
 키는 전부 서버 라우트(`app/api/*`)에서만 읽습니다. 브라우저로 나가지 않습니다.
 
@@ -59,7 +65,7 @@ lib/
 
 칼로리와 감량 기간은 `lib/nutrition.ts`에서 공식으로 계산합니다.
 같은 입력에 항상 같은 답이 나와야 하고, 숫자가 틀리면 안 되기 때문입니다.
-Claude에게는 **운동 계획 글쓰기**와 **사진 판독**만 맡깁니다.
+Gemini에게는 **운동 계획 글쓰기**와 **사진 판독**만 맡깁니다.
 
 ### 안전장치
 

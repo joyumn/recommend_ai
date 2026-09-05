@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { anthropic, MODEL, assertApiKey } from "@/lib/anthropic";
+import { generateJson, assertApiKey } from "@/lib/gemini";
 import { NearbySchema } from "@/lib/schema";
 
 export const maxDuration = 60;
@@ -25,8 +24,8 @@ const SYSTEM = `당신은 한국 음식에 밝은 영양 코치입니다.
 - 각 메뉴마다 **먹어도 되는 부분(eatPart)**과 **남겨야 하는 부분(avoidPart)**을 반드시 구분하세요.
   예: 국밥 -> "건더기와 고기" / "국물", 돈까스 -> "안쪽 고기" / "튀김옷과 소스",
       쌀국수 -> "면과 고기" / "국물", 김밥 -> "야채말이" / "단무지와 햄"
-- fitScore는 오늘 남은 예산에 얼마나 잘 맞는지 1~5로 매기세요. 예산을 크게 넘기면 낮게 주세요.
-- 목록에서 5~7곳만 골라 fitScore가 높은 순으로 담으세요.
+- fitScore는 오늘 남은 예산에 얼마나 잘 맞는지 1~5 사이의 숫자로 매기세요. 예산을 크게 넘기면 낮게 주세요.
+- 목록에서 5~7곳만 골라 담으세요.
 - 한국어 존댓말로 답하세요.`;
 
 export async function POST(req: Request) {
@@ -85,22 +84,19 @@ export async function POST(req: Request) {
     }));
 
     if (places.length === 0) {
-      return NextResponse.json({ picks: [], note: "근처에서 식당을 찾지 못했습니다." });
+      return NextResponse.json({ picks: [] });
     }
 
     const budgetText = remaining
       ? `오늘 남은 예산: ${remaining.kcalLeft}kcal, 단백질 ${remaining.proteinLeft}g`
       : "목표가 아직 설정되지 않았습니다. 일반적인 건강 기준으로 골라주세요.";
 
-    const res = await anthropic.messages.parse({
-      model: MODEL,
-      max_tokens: 8000,
+    const result = await generateJson({
       system: SYSTEM,
-      output_config: { effort: "low", format: zodOutputFormat(NearbySchema) },
-      messages: [
+      schema: NearbySchema,
+      parts: [
         {
-          role: "user",
-          content: `${budgetText}
+          text: `${budgetText}
 
 아래는 실제 근처 식당 목록입니다. 이 중에서 골라주세요.
 
@@ -109,10 +105,7 @@ ${JSON.stringify(places, null, 2)}`,
       ],
     });
 
-    if (!res.parsed_output) {
-      return NextResponse.json({ error: "추천을 만들지 못했습니다. 다시 시도해주세요." }, { status: 502 });
-    }
-    return NextResponse.json(res.parsed_output);
+    return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : "알 수 없는 오류";
     console.error("[/api/nearby]", e);
