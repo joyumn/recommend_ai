@@ -7,7 +7,7 @@ import { shrinkToBase64 } from "@/lib/image";
 import type { Meal } from "@/lib/schema";
 import type { AppState, Remaining } from "@/lib/storage";
 import ActivityCard from "./ActivityCard";
-import RecentMeals from "./RecentMeals";
+import { RecentMealsTeaser } from "./RecentMeals";
 import { Badge, Button, Card, ErrorBox, Spinner } from "./ui";
 
 const CONFIDENCE_LABEL = {
@@ -21,11 +21,13 @@ export default function MealTab({
   goal,
   remaining,
   onLog,
+  onOpenLog,
 }: {
   state: AppState;
   goal: ActivityGoal | null;
   remaining: Remaining | null;
   onLog: (m: Meal) => void;
+  onOpenLog: () => void;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string>("");
@@ -68,7 +70,7 @@ export default function MealTab({
       {/* 무엇을 먹을지 고르기 전에, 오늘 얼마나 움직였는지부터 */}
       <ActivityCard state={state} goal={goal} variant="compact" />
 
-      <RecentMeals state={state} />
+      <RecentMealsTeaser state={state} onOpen={onOpenLog} />
 
       <div className="px-1">
         <h1 className="text-[22px] font-bold leading-snug">

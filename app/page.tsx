@@ -18,12 +18,14 @@ import BudgetBar from "@/components/BudgetBar";
 import PlanTab from "@/components/PlanTab";
 import MealTab from "@/components/MealTab";
 import NearbyTab from "@/components/NearbyTab";
+import RecentMeals from "@/components/RecentMeals";
 
-type Tab = "plan" | "meal" | "nearby";
+type Tab = "plan" | "meal" | "log" | "nearby";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "plan", label: "내 계획" },
   { id: "meal", label: "식사 사진" },
+  { id: "log", label: "3일 기록" },
   { id: "nearby", label: "근처 식당" },
 ];
 
@@ -85,17 +87,23 @@ export default function Home() {
             goal={goal}
             remaining={remaining}
             onLog={(m: Meal) => commitState(addLog(state, m))}
+            onOpenLog={() => setTab("log")}
           />
         )}
+        {tab === "log" && <RecentMeals state={state} />}
         {tab === "nearby" && <NearbyTab state={state} remaining={remaining} />}
       </main>
 
       <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-[480px] -translate-x-1/2 border-t border-line bg-card/95 backdrop-blur">
-        <div className="grid grid-cols-3">
+        <div className="grid grid-cols-4">
           {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => {
+                setTab(t.id);
+                // 탭을 옮기면 화면 맨 위부터. 안 그러면 이전 탭에서 내려둔 자리에 떨어진다
+                window.scrollTo({ top: 0 });
+              }}
               className={`py-3.5 text-[13px] font-semibold transition ${
                 tab === t.id ? "text-brand" : "text-muted"
               }`}

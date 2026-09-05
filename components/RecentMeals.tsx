@@ -48,76 +48,77 @@ function SlotRow({
   }
 
   return (
-    <div className="flex gap-2.5">
-      <span className="mt-2.5 w-9 shrink-0 text-[12px] font-bold text-muted">{slot}</span>
+    <div className="space-y-1.5">
+      <div className="flex items-baseline gap-2">
+        <span className="text-[13px] font-bold">{slot}</span>
+        {logs.length === 0 && <span className="text-[11.5px] text-muted">비어 있음</span>}
+      </div>
 
-      <div className="min-w-0 flex-1 space-y-1.5">
-        {logs.map((l) => (
-          <div
-            key={l.id}
-            className="flex items-center gap-2 rounded-lg bg-brand-soft px-2.5 py-1.5 text-[13px]"
-          >
-            <span className="min-w-0 flex-1 truncate">{l.dishName}</span>
-            {l.source === "photo" && <span className="shrink-0 text-[11px] text-brand">사진</span>}
-            {l.kcal > 0 && (
-              <span className="shrink-0 tabular-nums text-[12px] text-muted">{l.kcal}kcal</span>
-            )}
-            <button
-              onClick={() => onRemove(l.id)}
-              aria-label={`${l.dishName} 지우기`}
-              className="shrink-0 px-1 text-[13px] text-muted"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-
-        <div className="flex gap-1.5">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={busy ? "사진을 읽는 중..." : "비워두셔도 됩니다"}
-            disabled={busy}
-            className="min-w-0 flex-1 rounded-lg border border-line bg-card px-2.5 py-2 text-[13px] outline-none focus:border-brand disabled:opacity-60"
-          />
-          <input
-            value={kcal}
-            onChange={(e) => setKcal(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            type="number"
-            inputMode="numeric"
-            placeholder="kcal"
-            className="w-[62px] shrink-0 rounded-lg border border-line bg-card px-2 py-2 text-[13px] outline-none focus:border-brand"
-          />
-
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onPhoto(f);
-              e.target.value = "";
-            }}
-          />
+      {logs.map((l) => (
+        <div
+          key={l.id}
+          className="flex items-center gap-2 rounded-xl bg-brand-soft px-3 py-2.5 text-[14px]"
+        >
+          <span className="min-w-0 flex-1 truncate">{l.dishName}</span>
+          {l.source === "photo" && <span className="shrink-0 text-[11px] text-brand">사진</span>}
+          {l.kcal > 0 && (
+            <span className="shrink-0 tabular-nums text-[12.5px] text-muted">{l.kcal}kcal</span>
+          )}
           <button
-            onClick={() => fileRef.current?.click()}
-            disabled={busy}
-            aria-label={`${slot} 사진으로 채우기`}
-            className="shrink-0 rounded-lg border border-line px-2.5 text-[14px] disabled:opacity-40"
+            onClick={() => onRemove(l.id)}
+            aria-label={`${l.dishName} 지우기`}
+            className="-mr-1 shrink-0 px-2 py-1 text-[14px] text-muted"
           >
-            {busy ? "…" : "📷"}
-          </button>
-          <button
-            onClick={submit}
-            disabled={!name.trim() || busy}
-            className="shrink-0 rounded-lg bg-brand px-3 text-[13px] font-semibold text-white disabled:opacity-40"
-          >
-            담기
+            ✕
           </button>
         </div>
+      ))}
+
+      <div className="flex gap-1.5">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder={busy ? "사진을 읽는 중..." : "무엇을 드셨나요"}
+          disabled={busy}
+          className="min-w-0 flex-1 rounded-xl border border-line bg-card px-3 py-2.5 text-[14px] outline-none focus:border-brand disabled:opacity-60"
+        />
+        <input
+          value={kcal}
+          onChange={(e) => setKcal(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          type="number"
+          inputMode="numeric"
+          placeholder="kcal"
+          className="w-[70px] shrink-0 rounded-xl border border-line bg-card px-2 py-2.5 text-[14px] outline-none focus:border-brand"
+        />
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) onPhoto(f);
+            e.target.value = "";
+          }}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={busy}
+          aria-label={`${slot} 사진으로 채우기`}
+          className="shrink-0 rounded-xl border border-line px-3 text-[15px] disabled:opacity-40"
+        >
+          {busy ? "…" : "📷"}
+        </button>
+        <button
+          onClick={submit}
+          disabled={!name.trim() || busy}
+          className="shrink-0 rounded-xl bg-brand px-3.5 text-[14px] font-semibold text-white disabled:opacity-40"
+        >
+          담기
+        </button>
       </div>
     </div>
   );
@@ -143,9 +144,9 @@ function ActivityRow({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex w-full items-center justify-between rounded-lg bg-line/30 px-2.5 py-1.5 text-[12px]"
+        className="flex w-full items-center justify-between rounded-xl bg-line/30 px-3 py-2.5 text-[13px]"
       >
-        <span className="text-muted">그날 운동량</span>
+        <span className="text-muted">걸음 · 시간 직접 입력</span>
         <span className={filled ? "font-semibold" : "text-muted"}>
           {filled
             ? `${steps.toLocaleString()}걸음 · ${exerciseMin}분 · ${activeKcal}kcal`
@@ -158,7 +159,7 @@ function ActivityRow({
   const num = (v: string) => (v.trim() === "" ? undefined : Math.max(0, Math.round(Number(v))));
 
   return (
-    <div className="flex gap-1.5 rounded-lg bg-line/30 p-1.5">
+    <div className="flex gap-1.5 rounded-xl bg-line/30 p-2">
       {(
         [
           ["steps", "걸음"],
@@ -173,7 +174,7 @@ function ActivityRow({
           type="number"
           inputMode="numeric"
           placeholder={unit}
-          className="w-full min-w-0 rounded-md border border-line bg-card px-2 py-1.5 text-[12.5px] outline-none focus:border-brand"
+          className="w-full min-w-0 rounded-lg border border-line bg-card px-2 py-2 text-[13px] outline-none focus:border-brand"
         />
       ))}
       <button
@@ -186,7 +187,7 @@ function ActivityRow({
           setForm({ steps: "", exerciseMin: "", activeKcal: "" });
           setOpen(false);
         }}
-        className="shrink-0 rounded-md bg-brand px-2.5 text-[12.5px] font-semibold text-white"
+        className="shrink-0 rounded-lg bg-brand px-3 text-[13px] font-semibold text-white"
       >
         저장
       </button>
@@ -194,15 +195,37 @@ function ActivityRow({
   );
 }
 
+/** 식사 사진 탭 위에 놓는 한 줄. 누르면 기록 화면으로 들어간다 */
+export function RecentMealsTeaser({ state, onOpen }: { state: AppState; onOpen: () => void }) {
+  const days = recentDays(state, 3);
+  const written = days.reduce((a, d) => a + d.logs.length, 0);
+
+  return (
+    <button
+      onClick={onOpen}
+      className="flex w-full items-center justify-between rounded-2xl border border-line bg-card px-3.5 py-3 text-left"
+    >
+      <div className="min-w-0">
+        <div className="text-[13px] font-semibold">지난 3일 먹은 것 · 운동량</div>
+        <div className="mt-0.5 truncate text-[12.5px] text-muted">
+          {written > 0
+            ? `${written}끼 적힘 · 사진 분석에 함께 넘어갑니다`
+            : "적어 두면 오늘 사진을 그 흐름 위에서 봅니다"}
+        </div>
+      </div>
+      <span className="ml-3 shrink-0 text-[13px] font-semibold text-brand">기록하기 →</span>
+    </button>
+  );
+}
+
 /**
- * 지난 3일 식사와 운동량.
+ * 지난 3일 식사와 운동량 - 한 화면 전체를 쓴다.
  *
  * 오늘 사진 한 장만 보면 "어제 이미 국물을 세 번 드셨다"는 사실을 알 수 없다.
  * 여기 적어 둔 사흘치가 사진 분석과 식당 추천에 함께 넘어간다.
  * 다 채울 필요는 없다. 빈칸은 비워둔 채로 넘어가고, 열량을 모르면 이름만 적어도 된다.
  */
 export default function RecentMeals({ state }: { state: AppState }) {
-  const [open, setOpen] = useState(false);
   const [busySlot, setBusySlot] = useState("");
   const [error, setError] = useState("");
   const days = recentDays(state, 3);
@@ -257,53 +280,52 @@ export default function RecentMeals({ state }: { state: AppState }) {
   }
 
   return (
-    <Card className="space-y-3">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-baseline justify-between"
-      >
-        <span className="text-[13px] font-semibold">
-          지난 3일 먹은 것 · 운동량
-          <span className="ml-1.5 font-normal text-muted">{written}끼 적힘</span>
-        </span>
-        <span className="text-[12.5px] font-semibold text-brand">{open ? "접기" : "적어 넣기"}</span>
-      </button>
+    <div className="space-y-4">
+      <div className="px-1">
+        <h1 className="text-[22px] font-bold leading-snug">
+          지난 3일 먹은 것과
+          <br />
+          움직인 양
+        </h1>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
+          여기 적어 둔 사흘치가 사진 분석과 식당 추천에 함께 넘어갑니다.
+          하루 다섯 끼까지, <b className="text-ink">기억나는 것만</b> 적으면 됩니다.
+        </p>
+      </div>
 
-      {!open && (
-        <p className="text-[12.5px] leading-relaxed text-muted">
-          사흘치를 적어 두면 오늘 사진을 분석할 때 &ldquo;어제 국물이 많았으니 오늘은&rdquo;처럼
-          이어서 봅니다. 하루 다섯 끼까지, 기억나는 것만 적으면 됩니다.
+      {error && (
+        <p className="rounded-xl bg-warn-soft px-3.5 py-3 text-[13px] leading-relaxed text-warn">
+          {error}
         </p>
       )}
 
-      {open && (
-        <div className="space-y-4">
-          {error && (
-            <p className="rounded-lg bg-warn-soft px-3 py-2 text-[12.5px] leading-relaxed text-warn">
-              {error}
-            </p>
-          )}
+      {days.map((d) => {
+        const totals = dayTotals(d.activity);
+        return (
+          <Card key={d.key} className="space-y-3">
+            <div className="flex items-baseline justify-between border-b border-line pb-2.5">
+              <span className="text-[17px] font-bold">{d.label}</span>
+              <span className="text-[12px] text-muted">
+                {d.logs.length > 0 ? `${d.logs.length}끼 적힘` : "아직 없음"}
+                {totals.exerciseMin > 0 && ` · 운동 ${totals.exerciseMin}분`}
+              </span>
+            </div>
 
-          {days.map((d) => (
-            <div key={d.key} className="space-y-2 border-t border-line pt-3 first:border-0 first:pt-0">
-              <div className="flex items-baseline justify-between">
-                <span className="text-[14px] font-bold">{d.label}</span>
-                <span className="text-[11.5px] text-muted">
-                  {d.logs.length > 0 ? `${d.logs.length}끼` : "아직 없음"}
-                </span>
-              </div>
-
+            <div className="space-y-2">
+              <div className="text-[13px] font-bold text-muted">운동</div>
+              <ExerciseLog state={state} date={d.date} sessions={d.activity.sessions ?? []} />
               <ActivityRow
-                steps={dayTotals(d.activity).steps}
-                exerciseMin={dayTotals(d.activity).exerciseMin}
-                activeKcal={dayTotals(d.activity).activeKcal}
+                steps={totals.steps}
+                exerciseMin={totals.exerciseMin}
+                activeKcal={totals.activeKcal}
                 onSave={(patch) =>
                   commitState(withActivity(state, { ...patch, source: "manual" }, d.date))
                 }
               />
+            </div>
 
-              <ExerciseLog state={state} date={d.date} sessions={d.activity.sessions ?? []} />
-
+            <div className="space-y-3 border-t border-line pt-3">
+              <div className="text-[13px] font-bold text-muted">먹은 것</div>
               {SLOTS.map((slot) => (
                 <SlotRow
                   key={slot}
@@ -318,14 +340,15 @@ export default function RecentMeals({ state }: { state: AppState }) {
                 />
               ))}
             </div>
-          ))}
+          </Card>
+        );
+      })}
 
-          <p className="text-[11.5px] leading-relaxed text-muted">
-            빈칸은 그냥 두셔도 됩니다. 열량을 비워두면 이름만 기억해 두고, 그 끼니는 예산에서 빼고
-            맥락으로만 씁니다. 📷 을 누르면 그 끼니 사진을 읽어 이름과 열량을 채웁니다.
-          </p>
-        </div>
-      )}
-    </Card>
+      <p className="px-1 text-[12px] leading-relaxed text-muted">
+        빈칸은 그냥 두셔도 됩니다. 열량을 비워두면 이름만 기억해 두고, 그 끼니는 예산에서 빼고
+        맥락으로만 씁니다. 📷 을 누르면 그 끼니 사진을 읽어 이름과 열량을 채웁니다
+        {written > 0 && ` (지금까지 ${written}끼)`}.
+      </p>
+    </div>
   );
 }
