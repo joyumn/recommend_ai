@@ -25,9 +25,26 @@ export function assertApiKey() {
   }
 }
 
+export type ImageMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
 export interface ImagePart {
   base64: string;
-  mediaType: "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+  mediaType: ImageMediaType;
+}
+
+/**
+ * 사진의 실제 형식을 앞 몇 바이트로 알아낸다.
+ *
+ * 화면이 알려준 형식을 그대로 믿으면, 확장자와 내용이 다른 사진에서 API가 400을 낸다
+ * ("jpeg라고 했는데 png로 보인다"). 눈으로 확인할 수 있는 것은 확인하고 넘긴다.
+ */
+export function sniffImageType(base64: string, fallback: ImageMediaType): ImageMediaType {
+  const head = base64.slice(0, 16);
+  if (head.startsWith("/9j/")) return "image/jpeg";
+  if (head.startsWith("iVBORw0KGgo")) return "image/png";
+  if (head.startsWith("R0lGOD")) return "image/gif";
+  if (head.startsWith("UklGR")) return "image/webp";
+  return fallback;
 }
 
 /**
@@ -58,7 +75,11 @@ export async function generateJson<T extends z.ZodType>({
   if (image) {
     content.push({
       type: "image",
-      source: { type: "base64", media_type: image.mediaType, data: image.base64 },
+      source: {
+        type: "base64",
+        media_type: sniffImageType(image.base64, image.mediaType),
+        data: image.base64,
+      },
     });
   }
   content.push({ type: "text", text: prompt });
