@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# 훅이 쓰는 상태 파일 (.env.local 변경 감지)
+.claude/.env-mtime

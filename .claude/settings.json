@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/typecheck.mjs",
+            "timeout": 60,
+            "statusMessage": "타입 검사 중"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/env-changed.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
