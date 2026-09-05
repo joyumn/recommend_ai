@@ -77,15 +77,19 @@ export default function MealTab({
           얼마나 먹어야 할까요?
         </h1>
         <p className="mt-1.5 text-[13px] leading-relaxed text-muted">
-          사진을 올리면 오늘 남은 예산에 맞춰 먹을 부분과 남길 부분을 알려드립니다.
+          지금 찍어도 되고 앨범에 있는 사진을 골라도 됩니다. 오늘 남은 예산에 맞춰
+          먹을 부분과 남길 부분을 알려드립니다.
         </p>
       </div>
 
+      {/*
+        capture를 지정하면 폰에서 카메라만 열리고 앨범을 못 고른다.
+        빼두면 "사진 찍기 / 보관함에서 고르기 / 파일"을 폰이 알아서 물어본다.
+      */}
       <input
         ref={fileRef}
         type="file"
         accept="image/*"
-        capture="environment"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
@@ -102,7 +106,7 @@ export default function MealTab({
       )}
 
       <Button onClick={() => fileRef.current?.click()} disabled={busy}>
-        {busy ? "분석 중..." : preview ? "다른 사진 올리기" : "식사 사진 올리기"}
+        {busy ? "분석 중..." : preview ? "다른 사진 올리기" : "사진 찍기 · 앨범에서 고르기"}
       </Button>
 
       {busy && <Spinner label="음식을 살펴보는 중입니다. 5~10초쯤 걸립니다." />}
