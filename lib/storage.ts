@@ -38,6 +38,8 @@ export interface AppState {
   /** 날짜(YYYY-MM-DD)별 활동 기록 */
   activity: Record<string, DayActivity>;
   quote: SavedQuote | null;
+  /** 기기 사이에 기록을 옮길 때 쓰는 코드. 백업을 한 번이라도 하면 생긴다 */
+  backupCode?: string;
 }
 
 const EMPTY: AppState = {

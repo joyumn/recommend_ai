@@ -5,6 +5,7 @@ import { todayDayName, todayInPlan, type ActivityGoal } from "@/lib/activity";
 import type { Profile } from "@/lib/nutrition";
 import { streakDays, type AppState } from "@/lib/storage";
 import ActivityCard from "./ActivityCard";
+import BackupCard from "./BackupCard";
 import DailyQuote from "./DailyQuote";
 import ProfileCard from "./ProfileCard";
 import ProfileForm from "./ProfileForm";
@@ -251,6 +252,8 @@ export default function PlanTab({
           </ul>
         </Card>
       )}
+
+      <BackupCard state={state} />
 
       <Button variant="ghost" onClick={onReset}>
         목표 다시 설정하기
