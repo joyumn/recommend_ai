@@ -38,6 +38,18 @@ body {
   word-break: keep-all;
 }
 
+/*
+ * 폰에서 입력칸을 누를 때 화면이 확대되지 않게.
+ * iOS Safari는 글자가 16px보다 작은 입력칸에 초점이 가면 페이지를 당겨 확대한다.
+ * (maximum-scale로는 막히지 않는다. 접근성 때문에 iOS가 그 값을 무시한다.)
+ * 손가락으로 쓰는 화면에서만 16px로 올리고, 마우스 화면은 그대로 둔다.
+ */
+@media (pointer: coarse) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+}
+
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner {
   width: 18px; height: 18px;
