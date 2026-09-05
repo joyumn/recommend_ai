@@ -18,15 +18,17 @@ import BudgetBar from "@/components/BudgetBar";
 import PlanTab from "@/components/PlanTab";
 import MealTab from "@/components/MealTab";
 import NearbyTab from "@/components/NearbyTab";
+import CenterTab from "@/components/CenterTab";
 import RecentMeals from "@/components/RecentMeals";
 
-type Tab = "plan" | "meal" | "log" | "nearby";
+type Tab = "plan" | "meal" | "log" | "nearby" | "center";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "plan", label: "내 계획" },
   { id: "meal", label: "식사 사진" },
   { id: "log", label: "3일 기록" },
   { id: "nearby", label: "근처 식당" },
+  { id: "center", label: "운동센터" },
 ];
 
 export default function Home() {
@@ -92,10 +94,11 @@ export default function Home() {
         )}
         {tab === "log" && <RecentMeals state={state} />}
         {tab === "nearby" && <NearbyTab state={state} remaining={remaining} />}
+        {tab === "center" && <CenterTab state={state} />}
       </main>
 
       <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-[480px] -translate-x-1/2 border-t border-line bg-card/95 backdrop-blur">
-        <div className="grid grid-cols-4">
+        <div className="grid grid-cols-5">
           {TABS.map((t) => (
             <button
               key={t.id}

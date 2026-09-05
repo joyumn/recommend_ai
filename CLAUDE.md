@@ -29,7 +29,7 @@
 | 변수 | 쓰는 곳 |
 |---|---|
 | `ANTHROPIC_API_KEY` | 모든 모델 호출 |
-| `KAKAO_REST_KEY` | 근처 식당 검색 + 메뉴 사진 검색 |
+| `KAKAO_REST_KEY` | 근처 식당·운동센터 검색 + 메뉴 사진 검색 |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | 기기 간 백업 (`/api/backup`) |
 | `ANTHROPIC_MODEL` | (선택) 모델 바꿀 때만 |
 

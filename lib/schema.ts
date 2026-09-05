@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { EXERCISE_NAMES } from "./exercise";
 
 /* ---------- 1. 운동 계획 ---------- */
 
@@ -105,3 +106,39 @@ export const QuoteSchema = z.object({
   reason: z.string().describe("오늘 이 말을 고른 이유 한 문장. 없으면 빈 문자열"),
 });
 export type Quote = z.infer<typeof QuoteSchema>;
+
+/* ---------- 5. 근처 운동센터 ---------- */
+
+export const CenterSchema = z.object({
+  picks: z.array(
+    z.object({
+      placeName: z.string().describe("카카오에서 받은 상호명 그대로"),
+      categoryName: z.string(),
+      distanceM: z.number(),
+      placeUrl: z.string(),
+      kind: z.string().describe("헬스장, 필라테스, 요가, 수영장, 크로스핏, 복싱, 클라이밍 중 하나"),
+      exerciseName: z.enum(EXERCISE_NAMES).describe("이 센터에서 할 운동. 주어진 목록에서만 고르세요"),
+      program: z.string().describe("여기서 어떻게 운동할지 한 문장"),
+      payType: z.enum(["월정액", "회당"]).describe("월 회원권이면 월정액, PT나 개인수업이면 회당"),
+      priceLow: z.number().describe("payType 기준 단가의 하한(원). 월정액이면 월 회비, 회당이면 1회 값"),
+      priceHigh: z.number().describe("같은 기준의 상한(원)"),
+      priceBasis: z.string().describe("그 금액이라고 본 근거 한 문장. 동네 시세, 업종, 상호에서 짐작한 규모"),
+      fitScore: z.number().describe("내 주간 운동량에 얼마나 맞는지 1~5"),
+      reason: z.string().describe("왜 이 곳인지 한두 문장"),
+    }),
+  ),
+  note: z.string().describe("목록 전체에 대해 덧붙일 말. 없으면 빈 문자열"),
+});
+export type Center = z.infer<typeof CenterSchema>;
+
+/**
+ * 화면이 받는 모양 = 모델이 고른 추천 + 서버에서 계산해 붙인 숫자.
+ * 월 비용과 소모 열량은 모델이 아니라 코드가 셈한다(lib/routine.ts, lib/exercise.ts).
+ */
+export type CenterPick = Center["picks"][number] & {
+  /** 한 달에 드는 돈. 회당 결제면 단가 × 주 N회 × 4.3주 */
+  monthlyLow: number;
+  monthlyHigh: number;
+  /** 회당 소모 열량. MET과 체중으로 계산한 값 */
+  perSessionKcal: number;
+};

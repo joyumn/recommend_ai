@@ -85,3 +85,9 @@ export function exerciseKcal(met: number, minutes: number, weightKg?: number): n
   const perMinute = ((met - 1) * 3.5 * weight) / 200;
   return Math.max(0, Math.round(perMinute * minutes));
 }
+
+/**
+ * zod enum에 넣을 종목 이름들.
+ * 모델이 없는 종목을 지어내면 MET을 못 찾아 소모 열량이 0이 된다. 목록 안에서만 고르게 묶는다.
+ */
+export const EXERCISE_NAMES = EXERCISES.map((e) => e.name) as [string, ...string[]];
