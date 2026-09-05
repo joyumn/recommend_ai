@@ -1,5 +1,7 @@
 # 몸친 — 뭘, 어떤 부분을, 얼마나 먹을지 알려주는 코치
 
+배포: https://recommend-ai-six.vercel.app
+
 목표 체중을 입력하면 현실적인 계획을 세우고, 식사 사진 한 장으로
 **어떤 부분을 먹고 어떤 부분을 남길지**까지 알려주는 웹앱입니다.
 
@@ -124,10 +126,19 @@ npm run dev                  # http://localhost:3000
 
 ## Vercel 배포
 
-1. GitHub에 push
-2. Vercel에서 저장소 Import
-3. **Settings → Environment Variables** 에 위 두 키를 동일한 이름으로 등록
-4. Deploy
+`main`에 push하면 자동으로 프로덕션에 올라갑니다.
+
+처음 세팅할 때 걸렸던 두 군데를 남겨둡니다.
+
+- Vercel 계정에 **GitHub 로그인 연결**이 없으면 저장소를 붙일 수 없습니다
+  (`You need to add a Login Connection to your GitHub account first`).
+  Settings → Login Connections에서 GitHub을 먼저 연결합니다.
+- 로그인 연결만으로는 부족하고 **Vercel GitHub App**이 그 저장소에 설치돼 있어야 합니다.
+  공개 저장소인데도 `Make sure ... you have access to the repository`가 나오면 이 경우입니다.
+  https://github.com/apps/vercel/installations/new 에서 저장소를 골라 설치합니다.
+
+**Settings → Environment Variables** 에 `ANTHROPIC_API_KEY`와 `KAKAO_REST_KEY`를 등록해야 합니다.
+빠뜨리면 배포는 성공하지만 API 호출에서 500이 납니다.
 
 > 환경변수를 빠뜨리면 배포는 성공하지만 API 호출에서 500이 납니다.
 > Vercel 대시보드의 해당 배포 → **Logs** 에서 원인을 확인할 수 있습니다.
