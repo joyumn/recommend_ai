@@ -6,6 +6,7 @@ import type { Profile } from "@/lib/nutrition";
 import { streakDays, type AppState } from "@/lib/storage";
 import ActivityCard from "./ActivityCard";
 import DailyQuote from "./DailyQuote";
+import ProfileCard from "./ProfileCard";
 import ProfileForm from "./ProfileForm";
 import { Badge, Button, Card, ErrorBox, Spinner, Warn } from "./ui";
 
@@ -109,6 +110,14 @@ export default function PlanTab({
         </div>
 
         {error && <ErrorBox message={error} />}
+
+        <div className="px-1">
+          <h2 className="text-[15px] font-bold">내 정보</h2>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted">
+            여기 넣은 값으로 하루 목표 열량과 운동량을 계산합니다. 나중에 첫 화면의
+            &ldquo;내 정보&rdquo;에서 언제든 고칠 수 있습니다.
+          </p>
+        </div>
         <ProfileForm initial={profile} onSubmit={onSubmit} busy={busy} />
       </div>
     );
@@ -155,6 +164,8 @@ export default function PlanTab({
       {daily.warnings.map((w, i) => (
         <Warn key={i}>⚠ {w}</Warn>
       ))}
+
+      <ProfileCard state={state} />
 
       <ActivityCard state={state} goal={goal} />
 

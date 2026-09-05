@@ -43,10 +43,12 @@ export default function ProfileForm({
   initial,
   onSubmit,
   busy,
+  submitLabel = "내 계획 만들기",
 }: {
   initial: Profile | null;
   onSubmit: (p: Profile) => void;
   busy: boolean;
+  submitLabel?: string;
 }) {
   const [p, setP] = useState<Profile>(initial ?? DEFAULTS);
   const set = <K extends keyof Profile>(k: K, v: Profile[K]) => setP((s) => ({ ...s, [k]: v }));
@@ -103,7 +105,7 @@ export default function ProfileForm({
       </Card>
 
       <Button onClick={() => onSubmit(p)} disabled={!valid || busy}>
-        {busy ? "계획을 세우는 중..." : "내 계획 만들기"}
+        {busy ? "계획을 세우는 중..." : submitLabel}
       </Button>
     </div>
   );
