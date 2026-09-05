@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { ActivityGoal } from "@/lib/activity";
 import type { Meal } from "@/lib/schema";
-import type { Remaining } from "@/lib/storage";
+import type { AppState, Remaining } from "@/lib/storage";
+import ActivityCard from "./ActivityCard";
 import { Badge, Button, Card, ErrorBox, Spinner } from "./ui";
 
 /** 폰 사진은 5MB가 넘는다. 긴 변 1024px로 줄여야 빠르고 저렴하다 */
@@ -32,9 +34,13 @@ const CONFIDENCE_LABEL = {
 } as const;
 
 export default function MealTab({
+  state,
+  goal,
   remaining,
   onLog,
 }: {
+  state: AppState;
+  goal: ActivityGoal | null;
   remaining: Remaining | null;
   onLog: (m: Meal) => void;
 }) {
@@ -70,6 +76,9 @@ export default function MealTab({
 
   return (
     <div className="space-y-4">
+      {/* 무엇을 먹을지 고르기 전에, 오늘 얼마나 움직였는지부터 */}
+      <ActivityCard state={state} goal={goal} variant="compact" />
+
       <div className="px-1">
         <h1 className="text-[22px] font-bold leading-snug">
           이 음식의 어떤 부분을

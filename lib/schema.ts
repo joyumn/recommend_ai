@@ -77,3 +77,31 @@ export const NearbySchema = z.object({
   ),
 });
 export type Nearby = z.infer<typeof NearbySchema>;
+
+/**
+ * 메뉴 사진. 모델이 아니라 카카오 이미지 검색에서 붙인다.
+ * 주소를 지어내지 않도록 모델 응답 스키마(NearbySchema)에는 넣지 않았다.
+ */
+export interface FoodPhoto {
+  /** 우리 서버를 거쳐 나가는 주소. 원본을 그대로 걸지 않는 이유는 app/api/photo 참고 */
+  src: string;
+  /** 사진이 실린 원문 페이지 */
+  sourceUrl: string;
+  /** 출처 표기용 이름. 예: 티스토리 */
+  sourceName: string;
+}
+
+/** 화면이 받는 모양 = 모델이 고른 추천 + 검색으로 붙인 사진 */
+export type NearbyPick = Nearby["picks"][number] & { photo?: FoodPhoto };
+
+/* ---------- 4. 오늘의 한마디 ---------- */
+
+/**
+ * 응원 문구. 실존 인물의 말을 지어내 붙이지 않도록 인용자 항목을 두지 않았다.
+ * 화면에 붙는 이름은 언제나 "몸친"이다.
+ */
+export const QuoteSchema = z.object({
+  text: z.string().describe("오늘 건넬 응원 한마디. 1~2문장, 60자 안팎의 한국어 존댓말"),
+  reason: z.string().describe("오늘 이 말을 고른 이유 한 문장. 없으면 빈 문자열"),
+});
+export type Quote = z.infer<typeof QuoteSchema>;

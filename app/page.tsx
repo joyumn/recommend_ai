@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
+import { activityGoal } from "@/lib/activity";
 import type { Profile } from "@/lib/nutrition";
 import type { Meal } from "@/lib/schema";
 import {
   addLog,
+  commitState,
   loadState,
   remainingToday,
-  saveState,
-  type AppState,
+  serverStateSnapshot,
+  stateSnapshot,
+  subscribeState,
 } from "@/lib/storage";
+import { useHealthLink } from "@/lib/useHealthLink";
 import BudgetBar from "@/components/BudgetBar";
 import PlanTab from "@/components/PlanTab";
 import MealTab from "@/components/MealTab";
@@ -25,19 +29,14 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("plan");
-  const [state, setState] = useState<AppState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   // localStorage는 브라우저에만 있으므로 화면이 뜬 뒤에 읽는다
-  useEffect(() => {
-    setState(loadState());
-  }, []);
+  const state = useSyncExternalStore(subscribeState, stateSnapshot, serverStateSnapshot);
 
-  function update(next: AppState) {
-    setState(next);
-    saveState(next);
-  }
+  // 아이폰 단축어가 주소에 실어 보낸 오늘 활동을 받는다
+  useHealthLink(state);
 
   async function createPlan(profile: Profile) {
     setError("");
@@ -50,7 +49,7 @@ export default function Home() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "계획을 만들지 못했습니다.");
-      update({ ...(state ?? loadState()), profile, daily: json.daily, plan: json.plan });
+      commitState({ ...(state ?? loadState()), profile, daily: json.daily, plan: json.plan });
     } catch (e) {
       setError(e instanceof Error ? e.message : "계획을 만들지 못했습니다.");
     } finally {
@@ -63,6 +62,7 @@ export default function Home() {
   }
 
   const remaining = remainingToday(state);
+  const goal = activityGoal(state.profile, state.daily, state.plan);
 
   return (
     <div className="flex min-h-screen flex-col pb-24">
@@ -71,19 +71,20 @@ export default function Home() {
       <main className="flex-1 px-4 py-5">
         {tab === "plan" && (
           <PlanTab
-            profile={state.profile}
-            daily={state.daily}
-            plan={state.plan}
+            state={state}
+            goal={goal}
             busy={busy}
             error={error}
             onSubmit={createPlan}
-            onReset={() => update({ ...state, daily: null, plan: null })}
+            onReset={() => commitState({ ...state, daily: null, plan: null })}
           />
         )}
         {tab === "meal" && (
           <MealTab
+            state={state}
+            goal={goal}
             remaining={remaining}
-            onLog={(m: Meal) => update(addLog(state, m))}
+            onLog={(m: Meal) => commitState(addLog(state, m))}
           />
         )}
         {tab === "nearby" && <NearbyTab remaining={remaining} />}

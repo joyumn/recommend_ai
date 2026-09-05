@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
-import type { Nearby } from "@/lib/schema";
+import type { NearbyPick } from "@/lib/schema";
 import type { Remaining } from "@/lib/storage";
 import { Badge, Button, Card, ErrorBox, Spinner } from "./ui";
 
-type Picks = Nearby["picks"];
+type Picks = NearbyPick[];
 
 export default function NearbyTab({ remaining }: { remaining: Remaining | null }) {
   const [picks, setPicks] = useState<Picks | null>(null);
@@ -13,11 +14,14 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
   const [error, setError] = useState("");
   const [keyword, setKeyword] = useState("");
   const [needKeyword, setNeedKeyword] = useState(false);
+  // 사진 주소가 죽어 있으면 자리만 비게 둔다
+  const [brokenPhoto, setBrokenPhoto] = useState<Record<number, boolean>>({});
 
   async function search(body: Record<string, unknown>) {
     setError("");
     setBusy(true);
     setPicks(null);
+    setBrokenPhoto({});
     try {
       const res = await fetch("/api/nearby", {
         method: "POST",
@@ -109,7 +113,8 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
         <div className="space-y-3">
           <div className="rounded-xl bg-warn-soft px-3.5 py-3 text-[12.5px] leading-relaxed text-warn">
             식당 이름과 거리는 실제 정보입니다. 메뉴는 상호와 업종으로 미루어 짐작한
-            <b> 예상 메뉴</b>이며 실제 메뉴판과 다를 수 있습니다.
+            <b> 예상 메뉴</b>이며 실제 메뉴판과 다를 수 있습니다. 사진도 메뉴 이름으로 검색한
+            <b> 참고 사진</b>이라 그 식당에서 찍은 사진이 아닙니다.
           </div>
 
           {picks.map((p, i) => (
@@ -140,6 +145,29 @@ export default function NearbyTab({ remaining }: { remaining: Remaining | null }
                 <span className="text-[15px] font-semibold">{p.menu}</span>
                 <Badge>예상 메뉴</Badge>
               </div>
+
+              {p.photo && !brokenPhoto[i] && (
+                <a
+                  href={p.photo.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block overflow-hidden rounded-xl border border-line"
+                >
+                  <div className="relative h-40 w-full bg-line/40">
+                    <Image
+                      src={p.photo.src}
+                      alt={`${p.menu} 참고 사진`}
+                      fill
+                      sizes="(max-width: 520px) 100vw, 480px"
+                      className="object-cover"
+                      onError={() => setBrokenPhoto((b) => ({ ...b, [i]: true }))}
+                    />
+                  </div>
+                  <div className="truncate bg-line/30 px-2.5 py-1.5 text-[11px] text-muted">
+                    참고 사진 · 출처 {p.photo.sourceName}
+                  </div>
+                </a>
+              )}
 
               <div className="space-y-1.5">
                 <div className="flex gap-2.5 rounded-xl bg-brand-soft px-3 py-2.5">

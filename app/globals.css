@@ -7,6 +7,7 @@
   --muted: #6b7770;
   --line: #e4e8e4;
   --brand: #1f8a4c;
+  --brand-deep: #0f5c33;
   --brand-soft: #e8f5ed;
   --warn: #b45309;
   --warn-soft: #fef3c7;
@@ -19,6 +20,7 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
   --color-brand-soft: var(--brand-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateJson, assertApiKey } from "@/lib/gemini";
-import { NearbySchema } from "@/lib/schema";
+import { NearbySchema, type NearbyPick } from "@/lib/schema";
+import { fetchFoodPhotos } from "@/lib/foodPhoto";
 
 export const maxDuration = 60;
 
@@ -105,7 +106,15 @@ ${JSON.stringify(places, null, 2)}`,
       ],
     });
 
-    return NextResponse.json(result);
+    // 모델이 고른 메뉴 이름으로 음식 사진을 붙인다.
+    // 사진은 곁들이는 정보라, 검색이 막혀도 추천은 그대로 내보낸다.
+    const photos = await fetchFoodPhotos(result.picks.map((p) => p.menu));
+    const picks: NearbyPick[] = result.picks.map((p) => {
+      const photo = photos.get(p.menu.trim());
+      return photo ? { ...p, photo } : p;
+    });
+
+    return NextResponse.json({ picks });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "알 수 없는 오류";
     console.error("[/api/nearby]", e);
