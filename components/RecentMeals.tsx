@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { dayTotals } from "@/lib/activity";
 import { recentHistory } from "@/lib/history";
 import { shrinkToBase64 } from "@/lib/image";
 import type { Meal } from "@/lib/schema";
@@ -16,6 +17,7 @@ import {
   type MealLog,
   type Slot,
 } from "@/lib/storage";
+import ExerciseLog from "./ExerciseLog";
 import { Card } from "./ui";
 
 /** 한 끼 적어 넣는 줄. 이름만 넣어도 되고, 사진을 올려 채울 수도 있다 */
@@ -292,13 +294,15 @@ export default function RecentMeals({ state }: { state: AppState }) {
               </div>
 
               <ActivityRow
-                steps={d.activity.steps}
-                exerciseMin={d.activity.exerciseMin}
-                activeKcal={d.activity.activeKcal}
+                steps={dayTotals(d.activity).steps}
+                exerciseMin={dayTotals(d.activity).exerciseMin}
+                activeKcal={dayTotals(d.activity).activeKcal}
                 onSave={(patch) =>
                   commitState(withActivity(state, { ...patch, source: "manual" }, d.date))
                 }
               />
+
+              <ExerciseLog state={state} date={d.date} sessions={d.activity.sessions ?? []} />
 
               {SLOTS.map((slot) => (
                 <SlotRow

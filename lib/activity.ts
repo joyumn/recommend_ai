@@ -6,6 +6,17 @@ import type { ActivityLevel, DailyPlan, Profile } from "./nutrition";
 import { bmr } from "./nutrition";
 import type { Plan } from "./schema";
 
+/** 종목과 시간으로 남긴 운동 한 건 */
+export interface ExerciseSession {
+  id: string;
+  /** lib/exercise.ts의 종목 이름 */
+  name: string;
+  met: number;
+  minutes: number;
+  /** 그 종목·시간·체중으로 계산한 소모 열량 */
+  kcal: number;
+}
+
 /** 폰 건강 앱이나 손으로 채워 넣는 하루치 활동 기록 */
 export interface DayActivity {
   steps: number;
@@ -13,9 +24,11 @@ export interface DayActivity {
   activeKcal: number;
   /** 운동한 시간(분) */
   exerciseMin: number;
-  source: "manual" | "shortcut" | "file";
+  source: "manual" | "file" | "shortcut";
   /** 마지막으로 채워진 시각 */
   at: string;
+  /** 종목별 기록. 예전에 저장된 날에는 없다 */
+  sessions?: ExerciseSession[];
 }
 
 export const EMPTY_ACTIVITY: DayActivity = {
@@ -24,7 +37,30 @@ export const EMPTY_ACTIVITY: DayActivity = {
   exerciseMin: 0,
   source: "manual",
   at: "",
+  sessions: [],
 };
+
+/**
+ * 그날의 최종 수치.
+ *
+ * 건강 앱이 준 값과 손으로 남긴 종목 기록은 같은 운동을 두 번 셀 수 있다.
+ * (수영 30분을 애플 건강도 잡고 사용자도 적는 경우) 그래서 더하지 않고 큰 쪽만 쓴다.
+ */
+export function dayTotals(a: DayActivity): {
+  steps: number;
+  exerciseMin: number;
+  activeKcal: number;
+} {
+  const sessions = a.sessions ?? [];
+  const loggedMin = sessions.reduce((x, s) => x + s.minutes, 0);
+  const loggedKcal = sessions.reduce((x, s) => x + s.kcal, 0);
+
+  return {
+    steps: a.steps,
+    exerciseMin: Math.max(a.exerciseMin, loggedMin),
+    activeKcal: Math.max(a.activeKcal, loggedKcal),
+  };
+}
 
 export interface ActivityGoal {
   /** 오늘 움직여서 태워야 하는 열량 */
@@ -103,7 +139,9 @@ export interface ActivityProgress {
   ratio: number;
 }
 
-export function activityProgress(goal: ActivityGoal, done: DayActivity): ActivityProgress {
+export function activityProgress(goal: ActivityGoal, activity: DayActivity): ActivityProgress {
+  const done = { ...activity, ...dayTotals(activity) };
+
   const parts: number[] = [];
   if (goal.moveKcal > 0) parts.push(done.activeKcal / goal.moveKcal);
   if (goal.steps > 0) parts.push(done.steps / goal.steps);

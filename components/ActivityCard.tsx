@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { activityProgress, activitySentence, type ActivityGoal } from "@/lib/activity";
+import { activityProgress, activitySentence, dayTotals, type ActivityGoal } from "@/lib/activity";
 import { parseHealthCsvDays } from "@/lib/healthImport";
 import { commitState, dateKey, todayActivity, withActivity, type AppState } from "@/lib/storage";
+import ExerciseLog from "./ExerciseLog";
 import { Badge, Button, Card } from "./ui";
 
 function Ring({ ratio }: { ratio: number }) {
@@ -115,8 +116,9 @@ export default function ActivityCard({
 
   if (!goal) return null;
 
-  const done = todayActivity(state);
-  const p = activityProgress(goal, done);
+  const activity = todayActivity(state);
+  const done = { ...activity, ...dayTotals(activity) };
+  const p = activityProgress(goal, activity);
 
   function save(
     patch: { steps?: number; exerciseMin?: number; activeKcal?: number },
@@ -224,8 +226,13 @@ export default function ActivityCard({
 
       {open && (
         <div className="space-y-4 border-t border-line pt-3.5">
+          <div className="space-y-2">
+            <div className="text-[13px] font-bold">운동 기록</div>
+            <ExerciseLog state={state} date={new Date()} sessions={activity.sessions ?? []} />
+          </div>
+
           <div className="space-y-2.5">
-            <div className="text-[13px] font-bold">직접 입력</div>
+            <div className="text-[13px] font-bold">걸음·시간 직접 입력</div>
             <div className="grid grid-cols-3 gap-2">
               <NumberField
                 label="걸음"

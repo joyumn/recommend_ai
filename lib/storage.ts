@@ -1,6 +1,6 @@
 "use client";
 
-import type { DayActivity } from "./activity";
+import type { DayActivity, ExerciseSession } from "./activity";
 import { EMPTY_ACTIVITY } from "./activity";
 import type { Profile, DailyPlan } from "./nutrition";
 import type { Plan, Meal } from "./schema";
@@ -175,6 +175,46 @@ export function remainingToday(s: AppState): Remaining | null {
  * 며칠째 이어오고 있는지. 식사를 기록했거나 활동이 채워진 날을 오늘부터 거꾸로 센다.
  * 오늘 아직 아무것도 없으면 어제까지의 기록을 세어 "이어오던 날"을 보여준다.
  */
+/** 종목별 운동 한 건을 그날에 더한다 */
+export function withSession(
+  s: AppState,
+  session: Omit<ExerciseSession, "id">,
+  d = new Date(),
+): AppState {
+  const key = dateKey(d);
+  const prev = s.activity[key] ?? EMPTY_ACTIVITY;
+  const entry: ExerciseSession = {
+    ...session,
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  };
+
+  return {
+    ...s,
+    activity: {
+      ...s.activity,
+      [key]: {
+        ...prev,
+        sessions: [...(prev.sessions ?? []), entry],
+        at: new Date().toISOString(),
+      },
+    },
+  };
+}
+
+export function withoutSession(s: AppState, id: string, d = new Date()): AppState {
+  const key = dateKey(d);
+  const prev = s.activity[key];
+  if (!prev?.sessions) return s;
+
+  return {
+    ...s,
+    activity: {
+      ...s.activity,
+      [key]: { ...prev, sessions: prev.sessions.filter((x) => x.id !== id) },
+    },
+  };
+}
+
 export function streakDays(s: AppState, d = new Date()): number {
   const marked = new Set<string>(Object.keys(s.activity));
   for (const l of s.logs) marked.add(dateKey(new Date(l.at)));
