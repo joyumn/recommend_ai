@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 핏플랜 — 뭘, 어떤 부분을, 얼마나 먹을지 알려주는 코치
 
-## Getting Started
+목표 체중을 입력하면 현실적인 계획을 세우고, 식사 사진 한 장으로
+**어떤 부분을 먹고 어떤 부분을 남길지**까지 알려주는 웹앱입니다.
 
-First, run the development server:
+## 무엇을 하는가
+
+| 탭 | 하는 일 |
+|---|---|
+| 내 계획 | 키·체중·목표를 넣으면 하루 목표 열량/단백질과 7일 운동 계획 |
+| 식사 사진 | 사진 → 음식별 **먹을 부분 / 남길 부분** + 먹을 양 + 아낀 칼로리 |
+| 근처 식당 | 내 위치(또는 동네 이름) → 근처 식당 + 예상 메뉴 + 먹을 부분 |
+
+세 탭은 **오늘 남은 칼로리·단백질 예산**을 공유합니다. 그래서 사진 분석이
+"밥은 2/3만"처럼 오늘의 내 상황에 맞는 답을 냅니다.
+
+## 시작하기
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # 그리고 키 2개를 채웁니다
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 필요한 키 2개
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 변수 | 어디서 | 비고 |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | https://console.anthropic.com → API Keys | Billing에서 크레딧 충전이 되어 있어야 동작합니다 |
+| `KAKAO_REST_KEY` | https://developers.kakao.com → 내 애플리케이션 → 앱 키 | **REST API 키**. 서버에서만 호출하므로 플랫폼 등록 불필요 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+키는 전부 서버 라우트(`app/api/*`)에서만 읽습니다. 브라우저로 나가지 않습니다.
 
-## Learn More
+## Vercel 배포
 
-To learn more about Next.js, take a look at the following resources:
+1. GitHub에 push
+2. Vercel에서 저장소 Import
+3. **Settings → Environment Variables** 에 위 두 키를 동일한 이름으로 등록
+4. Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+> 환경변수를 빠뜨리면 배포는 성공하지만 API 호출에서 500이 납니다.
+> Vercel 대시보드의 해당 배포 → **Logs** 에서 원인을 확인할 수 있습니다.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 구조
 
-## Deploy on Vercel
+```
+app/
+  page.tsx              탭 3개를 상태로 전환하는 단일 화면
+  api/plan/route.ts     프로필 → 운동 계획
+  api/meal/route.ts     사진 → 부위별 먹을 양   ← 이 앱의 핵심
+  api/nearby/route.ts   좌표 → 카카오 식당 → 메뉴별 먹을 양
+lib/
+  nutrition.ts          ★ 열량 계산. AI를 쓰지 않는 순수 수식
+  schema.ts             zod 스키마 (응답 모양을 강제해 화면이 깨지지 않게)
+  storage.ts            localStorage + 오늘 남은 예산 계산
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 왜 계산을 AI에게 맡기지 않았나
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+칼로리와 감량 기간은 `lib/nutrition.ts`에서 공식으로 계산합니다.
+같은 입력에 항상 같은 답이 나와야 하고, 숫자가 틀리면 안 되기 때문입니다.
+Claude에게는 **운동 계획 글쓰기**와 **사진 판독**만 맡깁니다.
+
+### 안전장치
+
+무리한 목표를 조용히 따라가지 않습니다. `dailyPlan()`이 두 겹으로 잘라냅니다.
+
+- 하루 열량 적자 ≤ 750kcal
+- 하루 섭취량 ≥ 1500kcal(남) / 1200kcal(여)
+
+잘라낸 경우 사용자에게 현실적인 기간을 계산해 경고와 함께 보여줍니다.
+예: "80kg → 72kg를 2주에"를 넣으면 12주로 교정합니다.
+
+## 한계
+
+- 사진 기반 칼로리는 **추정치**입니다. 실제와 20~30% 차이날 수 있으며 의학적 조언이 아닙니다.
+- 카카오 API는 식당 이름·업종·거리는 정확히 주지만 **메뉴판 데이터는 주지 않습니다.**
+  메뉴는 상호와 업종으로 미루어 짐작한 **예상 메뉴**이며, 화면에도 그렇게 표기합니다.
+- 데이터는 브라우저 `localStorage`에만 저장됩니다. 기기를 바꾸면 사라집니다.
